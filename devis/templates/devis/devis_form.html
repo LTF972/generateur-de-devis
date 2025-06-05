@@ -1,0 +1,355 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{# 
+    Ce template gère le formulaire de création et modification des devis.
+    Il comprend plusieurs sections :
+    1. Informations générales (client, date de validité)
+    2. Lignes du devis (description, quantité, prix unitaire, montant)
+    3. Informations complémentaires (conditions de paiement, notes)
+    
+    Fonctionnalités principales :
+    - Formulaire dynamique avec validation côté client
+    - Ajout/suppression dynamique de lignes de devis
+    - Calcul automatique des montants
+    - Styles personnalisés pour une meilleure UX
+    - Gestion des erreurs de validation
+#}
+
+{% block title %}{% if devis %}Modifier le devis{% else %}Nouveau devis{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .ligne-devis {
+        background-color: #f8f9fa;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+    }
+    .ligne-devis:hover {
+        background-color: #e9ecef;
+    }
+    .btn-remove {
+        color: #dc3545;
+        transition: all 0.3s ease;
+    }
+    .btn-remove:hover {
+        color: #bd2130;
+        transform: scale(1.1);
+    }
+    .montant {
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    .invalid-feedback {
+        display: none;
+    }
+    .was-validated .form-control:invalid ~ .invalid-feedback {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{# Conteneur principal #}
+<div class="container">
+    {# En-tête avec titre dynamique et bouton de retour #}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{% if devis %}Modifier le devis{% else %}Nouveau devis{% endif %}</h2>
+        <a href="{% url 'devis:devis_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Retour à la liste
+        </a>
+    </div>
+    
+    {# Formulaire principal avec validation #}
+    <form method="post" id="devisForm" class="needs-validation" novalidate>
+        {% csrf_token %}
+        
+        {# Carte des informations générales #}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">Informations générales</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="client" class="form-label">Client <span class="text-danger">*</span></label>
+                            <select name="client" id="client" class="form-select" required aria-required="true">
+                                <option value="">Sélectionner un client</option>
+                                {% for client in clients %}
+                                    <option value="{{ client.id }}" {% if devis and devis.client.id == client.id %}selected{% endif %}>
+                                        {{ client.nom }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">
+                                Veuillez sélectionner un client.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="date_validite" class="form-label">Date de validité <span class="text-danger">*</span></label>
+                            <input type="date" name="date_validite" id="date_validite" class="form-control" 
+                                   value="{{ devis.date_validite|date:'Y-m-d' }}" required aria-required="true"
+                                   min="{{ now|date:'Y-m-d' }}" aria-describedby="date_validite_help">
+                            <div id="date_validite_help" class="form-text">La date doit être future</div>
+                            <div class="invalid-feedback">
+                                Veuillez sélectionner une date de validité future.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Carte des lignes du devis avec gestion dynamique #}
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Lignes du devis</h4>
+                <button type="button" class="btn btn-primary" id="addLigne" aria-label="Ajouter une ligne">
+                    <i class="fas fa-plus" aria-hidden="true"></i> Ajouter une ligne
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="lignesContainer">
+                    {% if devis %}
+                        {% for ligne in devis.lignes.all %}
+                            <div class="ligne-devis">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="description_{{ forloop.counter }}" class="form-label">Description <span class="text-danger">*</span></label>
+                                            <input type="text" name="description[]" id="description_{{ forloop.counter }}" class="form-control" 
+                                                   value="{{ ligne.description }}" required aria-required="true">
+                                            <div class="invalid-feedback">
+                                                La description est requise.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="mb-3">
+                                            <label for="quantite_{{ forloop.counter }}" class="form-label">Quantité <span class="text-danger">*</span></label>
+                                            <input type="number" name="quantite[]" id="quantite_{{ forloop.counter }}" class="form-control quantite" 
+                                                   value="{{ ligne.quantite }}" min="1" required aria-required="true">
+                                            <div class="invalid-feedback">
+                                                La quantité doit être supérieure à 0.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="mb-3">
+                                            <label for="prix_unitaire_{{ forloop.counter }}" class="form-label">Prix unitaire <span class="text-danger">*</span></label>
+                                            <input type="number" name="prix_unitaire[]" id="prix_unitaire_{{ forloop.counter }}" class="form-control prix-unitaire" 
+                                                   value="{{ ligne.prix_unitaire }}" step="0.01" min="0" required aria-required="true">
+                                            <div class="invalid-feedback">
+                                                Le prix unitaire doit être positif.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="mb-3">
+                                            <label for="montant_{{ forloop.counter }}" class="form-label">Montant</label>
+                                            <input type="text" id="montant_{{ forloop.counter }}" class="form-control montant" value="{{ ligne.montant }}" readonly aria-readonly="true">
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-remove remove-ligne" aria-label="Supprimer cette ligne">
+                                    <i class="fas fa-trash" aria-hidden="true"></i> Supprimer
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {# Carte des informations complémentaires #}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">Informations complémentaires</h4>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="conditions_paiement" class="form-label">Conditions de paiement <span class="text-danger">*</span></label>
+                    <textarea name="conditions_paiement" id="conditions_paiement" class="form-control" rows="3" required aria-required="true">{{ devis.conditions_paiement }}</textarea>
+                    <div class="invalid-feedback">
+                        Les conditions de paiement sont requises.
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="notes" class="form-label">Notes</label>
+                    <textarea name="notes" id="notes" class="form-control" rows="3">{{ devis.notes }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        {# Boutons de navigation et de soumission #}
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            {# Bouton d'export PDF (visible uniquement si le devis existe) #}
+            {% if devis %}
+                <a href="{% url 'devis:devis_export_pdf' devis.pk %}" class="btn btn-info me-md-2" target="_blank">
+                    <i class="fas fa-file-pdf" aria-hidden="true"></i> Télécharger PDF
+                </a>
+                {% if devis.statut != 'termine' %}
+                    <button type="button" class="btn btn-success me-md-2" id="terminerDevis">
+                        <i class="fas fa-check-circle" aria-hidden="true"></i> Terminer le devis
+                    </button>
+                {% endif %}
+            {% endif %}
+            <a href="{% url 'devis:devis_list' %}" class="btn btn-secondary me-md-2">
+                <i class="fas fa-times" aria-hidden="true"></i> Annuler
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save" aria-hidden="true"></i> Enregistrer
+            </button>
+        </div>
+    </form>
+
+    {# Modal de confirmation pour terminer le devis - uniquement pour les devis existants #}
+    {% if devis %}
+    <div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmationModalLabel">Confirmer la finalisation du devis</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    Êtes-vous sûr de vouloir terminer ce devis ? Cette action ne pourra pas être annulée.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <form method="post" action="{% url 'devis:devis_terminer' devis.pk %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success">Confirmer</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{# Script JavaScript pour la gestion dynamique des lignes #}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('lignesContainer');
+    const addButton = document.getElementById('addLigne');
+    const form = document.getElementById('devisForm');
+    let ligneCounter = container.children.length;
+
+    // Fonction pour créer une nouvelle ligne
+    function createLigne() {
+        ligneCounter++;
+        const ligne = document.createElement('div');
+        ligne.className = 'ligne-devis';
+        ligne.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="description_${ligneCounter}" class="form-label">Description <span class="text-danger">*</span></label>
+                        <input type="text" name="description[]" id="description_${ligneCounter}" class="form-control" required aria-required="true">
+                        <div class="invalid-feedback">
+                            La description est requise.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <label for="quantite_${ligneCounter}" class="form-label">Quantité <span class="text-danger">*</span></label>
+                        <input type="number" name="quantite[]" id="quantite_${ligneCounter}" class="form-control quantite" min="1" required aria-required="true">
+                        <div class="invalid-feedback">
+                            La quantité doit être supérieure à 0.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <label for="prix_unitaire_${ligneCounter}" class="form-label">Prix unitaire <span class="text-danger">*</span></label>
+                        <input type="number" name="prix_unitaire[]" id="prix_unitaire_${ligneCounter}" class="form-control prix-unitaire" step="0.01" min="0" required aria-required="true">
+                        <div class="invalid-feedback">
+                            Le prix unitaire doit être positif.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <label for="montant_${ligneCounter}" class="form-label">Montant</label>
+                        <input type="text" id="montant_${ligneCounter}" class="form-control montant" readonly aria-readonly="true">
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-remove remove-ligne" aria-label="Supprimer cette ligne">
+                <i class="fas fa-trash" aria-hidden="true"></i> Supprimer
+            </button>
+        `;
+        return ligne;
+    }
+
+    // Ajouter une nouvelle ligne
+    addButton.addEventListener('click', function() {
+        container.appendChild(createLigne());
+    });
+
+    // Supprimer une ligne
+    container.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-ligne') || e.target.closest('.remove-ligne')) {
+            const ligne = e.target.closest('.ligne-devis');
+            if (container.children.length > 1) {
+                ligne.remove();
+            } else {
+                alert('Le devis doit contenir au moins une ligne.');
+            }
+        }
+    });
+
+    // Calculer le montant
+    container.addEventListener('input', function(e) {
+        if (e.target.classList.contains('quantite') || e.target.classList.contains('prix-unitaire')) {
+            const ligne = e.target.closest('.ligne-devis');
+            const quantite = parseFloat(ligne.querySelector('.quantite').value) || 0;
+            const prixUnitaire = parseFloat(ligne.querySelector('.prix-unitaire').value) || 0;
+            const montant = quantite * prixUnitaire;
+            ligne.querySelector('.montant').value = montant.toFixed(2);
+        }
+    });
+
+    // Validation du formulaire
+    form.addEventListener('submit', function(e) {
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+
+    // Validation de la date de validité
+    const dateValidite = document.getElementById('date_validite');
+    dateValidite.addEventListener('change', function() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const selectedDate = new Date(this.value);
+        
+        if (selectedDate < today) {
+            this.setCustomValidity('La date de validité doit être future.');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+
+    // Gestion du bouton "Terminer le devis"
+    const terminerBtn = document.getElementById('terminerDevis');
+    if (terminerBtn) {
+        terminerBtn.addEventListener('click', function() {
+            const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+            modal.show();
+        });
+    }
+});
+</script>
+{% endblock %} 

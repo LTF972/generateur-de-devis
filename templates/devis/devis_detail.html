@@ -1,0 +1,200 @@
+{% extends 'devis/base.html' %}
+
+{% block title %}Devis {{ devis.numero }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Informations principales -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i> Informations du Devis
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Numéro</dt>
+                        <dd class="col-sm-8">{{ devis.numero }}</dd>
+
+                        <dt class="col-sm-4">Client</dt>
+                        <dd class="col-sm-8">
+                            <a href="{% url 'clients:client_detail' devis.client.pk %}" class="text-decoration-none">
+                                {{ devis.client.nom }}
+                            </a>
+                        </dd>
+
+                        <dt class="col-sm-4">Date création</dt>
+                        <dd class="col-sm-8">{{ devis.date_creation|date:"d/m/Y" }}</dd>
+
+                        <dt class="col-sm-4">Date validité</dt>
+                        <dd class="col-sm-8">{{ devis.date_validite|date:"d/m/Y" }}</dd>
+
+                        <dt class="col-sm-4">Statut</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge {% if devis.statut == 'accepte' %}bg-success
+                                          {% elif devis.statut == 'refuse' %}bg-danger
+                                          {% elif devis.statut == 'envoye' %}bg-primary
+                                          {% else %}bg-secondary{% endif %}">
+                                {{ devis.get_statut_display }}
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-4">Conditions</dt>
+                        <dd class="col-sm-8">{{ devis.conditions_paiement|default:"Non spécifiées" }}</dd>
+
+                        <dt class="col-sm-4">Notes</dt>
+                        <dd class="col-sm-8">{{ devis.notes|default:"Aucune note" }}</dd>
+                    </dl>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        {% if devis.statut == 'brouillon' %}
+                        <a href="{% url 'devis:devis_update' devis.pk %}" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Modifier
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'devis:devis_export_pdf' devis.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-file-pdf"></i> Exporter en PDF
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistiques -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-chart-bar"></i> Totaux
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Total HT</th>
+                            <td class="text-end">{{ devis.montant_ht|floatformat:2 }} €</td>
+                        </tr>
+                        <tr>
+                            <th>TVA (20%)</th>
+                            <td class="text-end">{{ devis.montant_tva|floatformat:2 }} €</td>
+                        </tr>
+                        <tr class="table-primary">
+                            <th>Total TTC</th>
+                            <td class="text-end">{{ devis.montant_ttc|floatformat:2 }} €</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lignes du devis -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-list"></i> Lignes du Devis
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th class="text-end">Quantité</th>
+                                    <th class="text-end">Prix unitaire</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ligne in devis.lignes.all %}
+                                <tr>
+                                    <td>{{ ligne.description }}</td>
+                                    <td class="text-end">{{ ligne.quantite }}</td>
+                                    <td class="text-end">{{ ligne.prix_unitaire|floatformat:2 }} €</td>
+                                    <td class="text-end">{{ ligne.montant|floatformat:2 }} €</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">
+                                        <p class="text-muted my-3">Aucune ligne dans ce devis.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historique des actions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-history"></i> Historique
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for action in devis.historique.all %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker"></div>
+                            <div class="timeline-content">
+                                <h4 class="timeline-title">{{ action.get_type_display }}</h4>
+                                <p class="timeline-date">{{ action.date|date:"d/m/Y H:i" }}</p>
+                                <p class="timeline-text">{{ action.description }}</p>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted text-center my-3">Aucun historique disponible.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+    .timeline-item {
+        position: relative;
+        padding-left: 40px;
+        margin-bottom: 20px;
+    }
+    .timeline-marker {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        background: #0d6efd;
+        border: 3px solid #fff;
+        box-shadow: 0 0 0 2px #0d6efd;
+    }
+    .timeline-content {
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 5px;
+    }
+    .timeline-title {
+        margin: 0;
+        font-size: 1.1em;
+        color: #0d6efd;
+    }
+    .timeline-date {
+        font-size: 0.9em;
+        color: #6c757d;
+        margin: 5px 0;
+    }
+    .timeline-text {
+        margin: 0;
+    }
+</style>
+{% endblock %} 

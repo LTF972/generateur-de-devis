@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Accueil - Générateur de Devis{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Bienvenue sur le Générateur de Devis</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Box Clients -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-users text-primary me-2"></i>Clients
+                    </h5>
+                    <p class="card-text">Gérez vos clients et leurs informations.</p>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'clients:client_create' %}" class="btn btn-primary">
+                            <i class="fas fa-user-plus me-2"></i>Nouveau client
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Box Devis en cours -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-clock text-warning me-2"></i>Devis en cours
+                    </h5>
+                    <p class="card-text">Consultez et gérez vos devis en cours.</p>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'devis:devis_en_cours' %}" class="btn btn-warning">
+                            <i class="fas fa-list me-2"></i>Voir les devis en cours
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Box Devis terminés -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-check-circle text-success me-2"></i>Devis terminés
+                    </h5>
+                    <p class="card-text">Consultez l'historique de vos devis terminés.</p>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'devis_termines' %}" class="btn btn-success">
+                            <i class="fas fa-history me-2"></i>Voir les devis terminés
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

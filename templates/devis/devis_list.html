@@ -1,0 +1,181 @@
+{% extends 'devis/base.html' %}
+
+{% block title %}Liste des Devis{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Liste des Devis</h1>
+        <a href="{% url 'devis:devis_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nouveau Devis
+        </a>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="client" class="form-label">Client</label>
+                    <select name="client" id="client" class="form-select">
+                        <option value="">Tous les clients</option>
+                        {% for client in clients %}
+                        <option value="{{ client.id }}" {% if request.GET.client == client.id|stringformat:"i" %}selected{% endif %}>
+                            {{ client.nom }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="statut" class="form-label">Statut</label>
+                    <select name="statut" id="statut" class="form-select">
+                        <option value="">Tous les statuts</option>
+                        {% for value, label in statuts %}
+                        <option value="{{ value }}" {% if request.GET.statut == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="date_debut" class="form-label">Date début</label>
+                    <input type="date" name="date_debut" id="date_debut" class="form-control"
+                           value="{{ request.GET.date_debut }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="date_fin" class="form-label">Date fin</label>
+                    <input type="date" name="date_fin" id="date_fin" class="form-control"
+                           value="{{ request.GET.date_fin }}">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter"></i> Filtrer
+                    </button>
+                    <a href="{% url 'devis:devis_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Liste des devis -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Numéro</th>
+                            <th>Client</th>
+                            <th>Date</th>
+                            <th>Montant HT</th>
+                            <th>Montant TTC</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for devis in devis_list %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'devis:devis_detail' devis.pk %}" class="text-decoration-none">
+                                    {{ devis.numero }}
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'clients:client_detail' devis.client.pk %}" class="text-decoration-none">
+                                    {{ devis.client.nom }}
+                                </a>
+                            </td>
+                            <td>{{ devis.date_creation|date:"d/m/Y" }}</td>
+                            <td>{{ devis.montant_ht|floatformat:2 }} €</td>
+                            <td>{{ devis.montant_ttc|floatformat:2 }} €</td>
+                            <td>
+                                <span class="badge {% if devis.statut == 'accepte' %}bg-success
+                                                  {% elif devis.statut == 'refuse' %}bg-danger
+                                                  {% elif devis.statut == 'envoye' %}bg-primary
+                                                  {% else %}bg-secondary{% endif %}">
+                                    {{ devis.get_statut_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'devis:devis_detail' devis.pk %}" 
+                                       class="btn btn-sm btn-info" 
+                                       title="Voir les détails">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if devis.statut == 'brouillon' %}
+                                    <a href="{% url 'devis:devis_update' devis.pk %}" 
+                                       class="btn btn-sm btn-warning" 
+                                       title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                    <a href="{% url 'devis:devis_export_pdf' devis.pk %}" 
+                                       class="btn btn-sm btn-secondary" 
+                                       title="Exporter en PDF">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <p class="text-muted my-3">Aucun devis n'a été trouvé.</p>
+                                <a href="{% url 'devis:devis_create' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Créer un devis
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if devis_list.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if devis_list.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ devis_list.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Précédent">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in devis_list.paginator.page_range %}
+                    <li class="page-item {% if devis_list.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                    </li>
+                    {% endfor %}
+
+                    {% if devis_list.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ devis_list.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Suivant">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Réinitialisation des filtres
+    document.querySelector('a[href="{% url "devis:devis_list" %}"]').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelectorAll('select, input').forEach(element => {
+            element.value = '';
+        });
+        this.closest('form').submit();
+    });
+</script>
+{% endblock %} 

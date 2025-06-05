@@ -1,0 +1,15 @@
+<!-- devis_formulaire.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Formulaire de devis</title>
+</head>
+<body>
+    <h1>Formulaire de devis</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Envoyer</button>
+    </form>
+</body>
+</html>

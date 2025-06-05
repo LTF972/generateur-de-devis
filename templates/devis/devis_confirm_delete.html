@@ -1,0 +1,56 @@
+{% extends 'devis/base.html' %}
+
+{% block title %}Supprimer le Devis - {{ devis.numero }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Confirmation de suppression
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <p class="lead">
+                        Êtes-vous sûr de vouloir supprimer le devis <strong>{{ devis.numero }}</strong> ?
+                    </p>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <strong>Attention :</strong> Cette action est irréversible et supprimera également :
+                        <ul class="mb-0 mt-2">
+                            <li>Toutes les lignes du devis</li>
+                            <li>L'historique des actions</li>
+                            <li>Les fichiers PDF générés</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Informations :</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Client : {{ devis.client.nom }}</li>
+                            <li>Date de création : {{ devis.date_creation|date:"d/m/Y" }}</li>
+                            <li>Montant total : {{ devis.montant_ttc|floatformat:2 }} €</li>
+                        </ul>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'devis:devis_detail' devis.pk %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Annuler
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Confirmer la suppression
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

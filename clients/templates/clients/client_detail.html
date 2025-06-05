@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{# 
+    Ce template affiche les détails complets d'un client spécifique.
+    Il comprend deux sections principales :
+    1. Informations détaillées du client :
+       - Nom, email, téléphone, adresse
+       - Notes (si présentes)
+    2. Liste des devis associés au client :
+       - Numéro, date, montant et statut de chaque devis
+       - Actions possibles sur les devis
+    
+    Le template inclut également des boutons pour modifier ou supprimer le client.
+#}
+
+{% block title %}Détails du client - {{ client.nom }}{% endblock %}
+
+{% block content %}
+{# Conteneur principal #}
+<div class="container">
+    {# En-tête avec titre et boutons d'action #}
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Détails du client</h2>
+        </div>
+        <div class="col text-end">
+            <a href="{% url 'clients:client_update' client.pk %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Modifier
+            </a>
+            <a href="{% url 'clients:client_delete' client.pk %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Supprimer
+            </a>
+        </div>
+    </div>
+
+    {# Carte contenant les informations détaillées du client #}
+    <div class="card mb-4">
+        <div class="card-body">
+            {# Titre avec le nom du client #}
+            <h3 class="card-title">{{ client.nom }}</h3>
+            {# Informations de contact sur deux colonnes #}
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <p><strong>Email :</strong> {{ client.email }}</p>
+                    <p><strong>Téléphone :</strong> {{ client.téléphone }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Adresse :</strong></p>
+                    <p>{{ client.adresse|linebreaks }}</p>
+                </div>
+            </div>
+            {# Section des notes (affichée uniquement si des notes existent) #}
+            {% if client.notes %}
+            <div class="mt-4">
+                <h4>Notes</h4>
+                <p>{{ client.notes|linebreaks }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Carte contenant la liste des devis du client #}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title mb-0">Devis du client</h3>
+        </div>
+        <div class="card-body">
+            {# Affichage conditionnel : tableau si devis existent, message sinon #}
+            {% if client.clients_devis.all %}
+                {# Tableau responsive avec liste des devis #}
+                <div class="table-responsive">
+                    {# En-tête du tableau avec les colonnes des devis #}
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>N° Devis</th>
+                                <th>Date</th>
+                                <th>Montant</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for devis in client.clients_devis.all %}
+                            <tr>
+                                <td>{{ devis.numero }}</td>
+                                <td>{{ devis.date_creation|date:"d/m/Y" }}</td>
+                                <td>{{ devis.montant_total }} €</td>
+                                <td>
+                                    <span class="badge {% if devis.statut == 'en_cours' %}bg-warning{% elif devis.statut == 'termine' %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ devis.get_statut_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'devis:devis_detail' devis.pk %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i> Voir
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                {# Message si aucun devis n'existe #}
+                <p class="text-muted">Aucun devis pour ce client.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

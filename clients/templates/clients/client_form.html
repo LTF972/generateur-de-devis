@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{# 
+    Ce template est utilisé pour la création et la modification des clients.
+    Il affiche un formulaire permettant de saisir ou modifier les informations d'un client :
+    - Nom
+    - Email
+    - Téléphone
+    - Adresse
+    - Notes
+    
+    Le formulaire s'adapte automatiquement selon qu'il s'agit d'une création (Nouveau client)
+    ou d'une modification (Modifier le client) grâce à la variable 'client'.
+#}
+
+{% block content %}
+{# Conteneur principal avec une mise en page responsive #}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            {# Carte contenant le formulaire #}
+            <div class="card">
+                {# En-tête de la carte avec le titre dynamique #}
+                <div class="card-header">
+                    <h2 class="text-center">
+                        {% if client %}
+                            Modifier le client
+                        {% else %}
+                            Nouveau client
+                        {% endif %}
+                    </h2>
+                </div>
+                {# Corps de la carte contenant le formulaire #}
+                <div class="card-body">
+                    {# Formulaire POST avec protection CSRF #}
+                    <form method="POST">
+                        {% csrf_token %}
+                        {# Première rangée : Nom et Email #}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="nom">Nom</label>
+                                    <input type="text" class="form-control" id="nom" name="nom" value="{{ client.nom|default:'' }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="email">Email</label>
+                                    <input type="email" class="form-control" id="email" name="email" value="{{ client.email|default:'' }}" required>
+                                </div>
+                            </div>
+                        </div>
+                        {# Deuxième rangée : Téléphone et Adresse #}
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="telephone">Téléphone</label>
+                                    <input type="tel" class="form-control" id="telephone" name="telephone" value="{{ client.téléphone|default:'' }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="adresse">Adresse</label>
+                                    <textarea class="form-control" id="adresse" name="adresse" rows="1">{{ client.adresse|default:'' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        {# Troisième rangée : Notes (pleine largeur) #}
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label for="notes">Notes</label>
+                                    <textarea class="form-control" id="notes" name="notes" rows="3">{{ client.notes|default:'' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        {# Boutons de navigation et de soumission #}
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'clients:client_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Retour
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Enregistrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

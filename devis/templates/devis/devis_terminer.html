@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{# 
+    Ce template affiche la page de finalisation d'un devis.
+    Il permet de marquer un devis comme accepté ou refusé.
+    Une fois finalisé, le devis apparaîtra dans la liste des devis terminés.
+#}
+
+{% block title %}Finaliser le devis{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="text-center">Finaliser le devis</h2>
+                </div>
+                <div class="card-body">
+                    <p class="text-center">
+                        Comment souhaitez-vous finaliser le devis "{{ devis.numero }}" ?
+                    </p>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-center gap-3">
+                            <a href="{% url 'devis:devis_detail' devis.pk %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Annuler
+                            </a>
+                            <button type="submit" name="action" value="accepter" class="btn btn-success">
+                                <i class="fas fa-check"></i> Accepter le devis
+                            </button>
+                            <button type="submit" name="action" value="refuser" class="btn btn-danger">
+                                <i class="fas fa-times"></i> Refuser le devis
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

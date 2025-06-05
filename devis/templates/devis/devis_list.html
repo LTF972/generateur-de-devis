@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{# 
+    Ce template affiche la liste complète des devis dans un tableau interactif.
+    Fonctionnalités principales :
+    - Affichage des informations essentielles (numéro, client, date, montants, statut)
+    - Actions multiples pour chaque devis (voir, modifier, supprimer)
+    - Export des devis en différents formats (PDF, Excel, Word)
+    - Pagination des résultats
+    - Statuts visuels avec code couleur
+    - Bouton pour créer un nouveau devis
+#}
+
+{% block title %}{{ titre|default:"Liste des devis" }}{% endblock %}
+
+{% block content %}
+{# Conteneur principal #}
+<div class="container">
+    {# En-tête avec titre dynamique et bouton d'ajout #}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ titre|default:"Liste des devis" }}</h2>
+        <a href="{% url 'devis:devis_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nouveau devis
+        </a>
+    </div>
+
+    {# Carte contenant le tableau des devis #}
+    <div class="card">
+        <div class="card-body">
+            {# Tableau responsive avec liste des devis #}
+            <div class="table-responsive">
+                {# En-tête du tableau avec les colonnes principales #}
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Numéro</th>
+                            <th>Client</th>
+                            <th>Date</th>
+                            <th>Montant HT</th>
+                            <th>Montant TTC</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for devis in devis %}
+                            <tr>
+                                <td>{{ devis.numero }}</td>
+                                <td>{{ devis.client.nom }}</td>
+                                <td>{{ devis.date_creation|date:"d/m/Y" }}</td>
+                                <td>{{ devis.montant_ht|floatformat:2 }} €</td>
+                                <td>{{ devis.montant_ttc|floatformat:2 }} €</td>
+                                <td>
+                                    <span class="badge {% if devis.statut == 'accepte' %}bg-success
+                                                      {% elif devis.statut == 'refuse' %}bg-danger
+                                                      {% elif devis.statut == 'envoye' %}bg-info
+                                                      {% else %}bg-secondary{% endif %}">
+                                        {{ devis.get_statut_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'devis:devis_detail' devis.pk %}" class="btn btn-sm btn-info" title="Voir">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'devis:devis_update' devis.pk %}" class="btn btn-sm btn-warning" title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'devis:devis_delete' devis.pk %}" class="btn btn-sm btn-danger" title="Supprimer">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-secondary dropdown-toggle" data-bs-toggle="dropdown" title="Exporter">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'devis:devis_export_pdf' devis.pk %}">
+                                                        <i class="fas fa-file-pdf text-danger"></i> PDF
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'devis:devis_export_excel' devis.pk %}">
+                                                        <i class="fas fa-file-excel text-success"></i> Excel
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'devis:devis_export_word' devis.pk %}">
+                                                        <i class="fas fa-file-word text-primary"></i> Word
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">Aucun devis trouvé</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {# Pagination (affichée uniquement si plusieurs pages existent) #}
+            {% if devis.has_other_pages %}
+            {# Navigation de pagination avec première/dernière page et pages adjacentes #}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if devis.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ devis.previous_page_number }}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in devis.paginator.page_range %}
+                        {% if devis.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > devis.number|add:'-3' and num < devis.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if devis.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ devis.next_page_number }}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ devis.paginator.num_pages }}" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

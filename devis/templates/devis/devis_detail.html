@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load devis_filters %}
+
+{# 
+    Ce template affiche les détails complets d'un devis spécifique.
+    Il est organisé en plusieurs sections :
+    1. En-tête avec actions (modifier, supprimer, exporter)
+    2. Informations générales du devis (client, dates, statut)
+    3. Détail des prestations avec calculs (HT, TVA, TTC)
+    4. Conditions de paiement et notes (si présentes)
+    
+    Le template utilise des filtres personnalisés (devis_filters) pour les calculs
+    et inclut des options d'export en différents formats (PDF, Excel, Word).
+#}
+
+{% block title %}Devis {{ devis.numero }}{% endblock %}
+
+{% block content %}
+{# Conteneur principal #}
+<div class="container">
+    {# En-tête avec numéro de devis et boutons d'action #}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Devis {{ devis.numero }}</h2>
+        <div class="btn-group">
+            {% if devis.statut in 'brouillon,envoye' %}
+            <a href="{% url 'devis:devis_terminer' devis.pk %}" class="btn btn-success">
+                <i class="fas fa-check" aria-hidden="true"></i> Finaliser
+            </a>
+            {% endif %}
+            <a href="{% url 'devis:devis_update' devis.pk %}" class="btn btn-warning">
+                <i class="fas fa-edit" aria-hidden="true"></i> Modifier
+            </a>
+            <a href="{% url 'devis:devis_delete' devis.pk %}" class="btn btn-danger">
+                <i class="fas fa-trash" aria-hidden="true"></i> Supprimer
+            </a>
+            <div class="btn-group">
+                <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-download" aria-hidden="true"></i> Exporter
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{% url 'devis:devis_export_pdf' devis.pk %}">
+                            <i class="fas fa-file-pdf text-danger" aria-hidden="true"></i> PDF
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'devis:devis_export_excel' devis.pk %}">
+                            <i class="fas fa-file-excel text-success" aria-hidden="true"></i> Excel
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'devis:devis_export_word' devis.pk %}">
+                            <i class="fas fa-file-word text-primary" aria-hidden="true"></i> Word
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        {# Colonne principale (8/12) #}
+        <div class="col-md-8">
+            {# Carte des informations générales du devis #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Informations du devis</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Client :</strong> {{ devis.client.nom }}</p>
+                            <p><strong>Date de création :</strong> {{ devis.date_creation|date:"d/m/Y" }}</p>
+                            <p><strong>Date de validité :</strong> {{ devis.date_validite|date:"d/m/Y" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Statut :</strong> 
+                                <span class="badge {% if devis.statut == 'accepte' %}bg-success
+                                                  {% elif devis.statut == 'refuse' %}bg-danger
+                                                  {% elif devis.statut == 'envoye' %}bg-info
+                                                  {% else %}bg-secondary{% endif %}" role="status">
+                                    {{ devis.get_statut_display }}
+                                </span>
+                            </p>
+                            <p><strong>Créé par :</strong> {{ devis.cree_par.username }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Carte contenant le détail des prestations #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Détail des prestations</h4>
+                </div>
+                <div class="card-body">
+                    {# Tableau des prestations avec calculs #}
+                    <div class="table-responsive">
+                        {# En-tête du tableau avec les colonnes de calcul #}
+                        <table class="table" aria-label="Détail des prestations">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Description</th>
+                                    <th scope="col" class="text-end">Quantité</th>
+                                    <th scope="col" class="text-end">Prix unitaire</th>
+                                    <th scope="col" class="text-end">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ligne in lignes %}
+                                    <tr>
+                                        <td>{{ ligne.description }}</td>
+                                        <td class="text-end">{{ ligne.quantite }}</td>
+                                        <td class="text-end">{{ ligne.prix_unitaire|floatformat:2 }} €</td>
+                                        <td class="text-end">{{ ligne.montant|floatformat:2 }} €</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Total HT</strong></td>
+                                    <td class="text-end"><strong>{{ devis.montant_ht|floatformat:2 }} €</strong></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>TVA ({{ devis.tva }}%)</strong></td>
+                                    <td class="text-end"><strong>{{ devis.montant_ttc|sub:devis.montant_ht|floatformat:2 }} €</strong></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Total TTC</strong></td>
+                                    <td class="text-end"><strong>{{ devis.montant_ttc|floatformat:2 }} €</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Colonne latérale (4/12) #}
+        <div class="col-md-4">
+            {# Carte des conditions de paiement #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Conditions de paiement</h4>
+                </div>
+                <div class="card-body">
+                    <p>{{ devis.conditions_paiement|linebreaks }}</p>
+                </div>
+            </div>
+
+            {# Carte des notes (affichée uniquement si des notes existent) #}
+            {% if devis.notes %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="mb-0">Notes</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>{{ devis.notes|linebreaks }}</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

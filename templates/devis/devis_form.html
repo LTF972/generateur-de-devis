@@ -1,0 +1,182 @@
+{% extends 'devis/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    {% if devis %}Modifier le Devis{% else %}Nouveau Devis{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title mb-0">
+                        {% if devis %}
+                            <i class="fas fa-edit"></i> Modifier le Devis
+                        {% else %}
+                            <i class="fas fa-plus"></i> Nouveau Devis
+                        {% endif %}
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <!-- Informations principales -->
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h3 class="card-title h5 mb-0">Informations principales</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        {{ form.client|as_crispy_field }}
+                                        {{ form.date_validite|as_crispy_field }}
+                                        {{ form.conditions_paiement|as_crispy_field }}
+                                        {{ form.notes|as_crispy_field }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Lignes du devis -->
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h3 class="card-title h5 mb-0">Lignes du devis</h3>
+                                        <button type="button" class="btn btn-sm btn-primary" id="add-line">
+                                            <i class="fas fa-plus"></i> Ajouter une ligne
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="lignes-container">
+                                            {{ formset.management_form }}
+                                            {% for form in formset %}
+                                            <div class="ligne-devis mb-3 p-3 border rounded">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        {{ form.description|as_crispy_field }}
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        {{ form.quantite|as_crispy_field }}
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        {{ form.prix_unitaire|as_crispy_field }}
+                                                    </div>
+                                                    <div class="col-md-1 d-flex align-items-end">
+                                                        <button type="button" class="btn btn-sm btn-danger remove-line">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                {{ form.id }}
+                                                {{ form.DELETE }}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+
+                                        <!-- Totaux -->
+                                        <div class="row mt-4">
+                                            <div class="col-md-6 offset-md-6">
+                                                <table class="table table-sm">
+                                                    <tr>
+                                                        <th>Total HT</th>
+                                                        <td class="text-end" id="total-ht">0.00 €</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>TVA (20%)</th>
+                                                        <td class="text-end" id="total-tva">0.00 €</td>
+                                                    </tr>
+                                                    <tr class="table-primary">
+                                                        <th>Total TTC</th>
+                                                        <td class="text-end" id="total-ttc">0.00 €</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'devis:devis_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Retour
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> 
+                                {% if devis %}Enregistrer{% else %}Créer{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Fonction pour calculer les totaux
+    function calculerTotaux() {
+        let totalHT = 0;
+        document.querySelectorAll('.ligne-devis').forEach(ligne => {
+            const quantite = parseFloat(ligne.querySelector('[name$="-quantite"]').value) || 0;
+            const prix = parseFloat(ligne.querySelector('[name$="-prix_unitaire"]').value) || 0;
+            totalHT += quantite * prix;
+        });
+        
+        const tva = totalHT * 0.20;
+        const totalTTC = totalHT + tva;
+
+        document.getElementById('total-ht').textContent = totalHT.toFixed(2) + ' €';
+        document.getElementById('total-tva').textContent = tva.toFixed(2) + ' €';
+        document.getElementById('total-ttc').textContent = totalTTC.toFixed(2) + ' €';
+    }
+
+    // Ajouter une nouvelle ligne
+    document.getElementById('add-line').addEventListener('click', function() {
+        const totalForms = document.querySelector('#id_lignes-TOTAL_FORMS');
+        const formCount = parseInt(totalForms.value);
+        const container = document.getElementById('lignes-container');
+        const template = container.querySelector('.ligne-devis').cloneNode(true);
+        
+        // Mettre à jour les IDs et names
+        template.querySelectorAll('[name]').forEach(input => {
+            input.name = input.name.replace(/\d+/, formCount);
+            input.value = '';
+        });
+        
+        // Ajouter la nouvelle ligne
+        container.appendChild(template);
+        totalForms.value = formCount + 1;
+        
+        // Ajouter l'écouteur d'événements pour la suppression
+        template.querySelector('.remove-line').addEventListener('click', function() {
+            template.remove();
+            calculerTotaux();
+        });
+        
+        // Ajouter les écouteurs d'événements pour le calcul des totaux
+        template.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', calculerTotaux);
+        });
+    });
+
+    // Initialiser les écouteurs d'événements pour les lignes existantes
+    document.querySelectorAll('.ligne-devis').forEach(ligne => {
+        ligne.querySelector('.remove-line').addEventListener('click', function() {
+            ligne.remove();
+            calculerTotaux();
+        });
+        
+        ligne.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', calculerTotaux);
+        });
+    });
+
+    // Calculer les totaux au chargement
+    calculerTotaux();
+</script>
+{% endblock %} 

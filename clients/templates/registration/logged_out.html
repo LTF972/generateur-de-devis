@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}Déconnexion{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card mt-5">
+                <div class="card-body text-center">
+                    <h2 class="card-title mb-4">Déconnexion réussie</h2>
+                    <p class="card-text">Vous avez été déconnecté avec succès.</p>
+                    <a href="{% url 'login' %}" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt me-2"></i>Se reconnecter
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

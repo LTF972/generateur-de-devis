@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{# 
+    Ce template affiche la liste de tous les clients dans un tableau.
+    Fonctionnalités principales :
+    - Affichage des informations essentielles (nom, email, téléphone)
+    - Nombre de devis associés à chaque client
+    - Actions possibles pour chaque client (voir détails, modifier, supprimer)
+    - Bouton pour créer un nouveau client
+    - Message si aucun client n'existe
+#}
+
+{% block title %}Liste des clients{% endblock %}
+
+{% block content %}
+{# Conteneur principal #}
+<div class="container">
+    {# En-tête avec titre et bouton d'ajout #}
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Liste des clients</h2>
+        </div>
+        <div class="col text-end">
+            <a href="{% url 'clients:client_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nouveau client
+            </a>
+        </div>
+    </div>
+
+    {# Affichage conditionnel : tableau si clients existent, message sinon #}
+    {% if clients %}
+        {# Tableau responsive avec liste des clients #}
+        <div class="table-responsive">
+            {# En-tête du tableau avec les colonnes principales #}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Email</th>
+                        <th>Téléphone</th>
+                        <th>Devis</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for client in clients %}
+                    <tr>
+                        <td>{{ client.nom }}</td>
+                        <td>{{ client.email }}</td>
+                        <td>{{ client.téléphone }}</td>
+                        <td>
+                            <span class="badge bg-primary">{{ client.clients_devis.count }}</span>
+                        </td>
+                        <td>
+                            <a href="{% url 'clients:client_detail' client.pk %}" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i> Voir
+                            </a>
+                            <a href="{% url 'clients:client_update' client.pk %}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i> Modifier
+                            </a>
+                            <a href="{% url 'clients:client_delete' client.pk %}" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash"></i> Supprimer
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        {# Message affiché si aucun client n'existe #}
+        <div class="alert alert-info">
+            Aucun client trouvé.
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

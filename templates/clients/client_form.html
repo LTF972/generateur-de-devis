@@ -1,0 +1,114 @@
+{% extends 'clients/base.html' %}
+
+{% block title %}
+    {% if client %}Modifier le Client{% else %}Nouveau Client{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title mb-0">
+                        {% if client %}
+                            <i class="fas fa-edit"></i> Modifier le Client
+                        {% else %}
+                            <i class="fas fa-plus"></i> Nouveau Client
+                        {% endif %}
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="nom" class="form-label">Nom *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="nom" 
+                                   name="nom" 
+                                   value="{{ client.nom|default:'' }}" 
+                                   required>
+                            <div class="invalid-feedback">
+                                Le nom est obligatoire.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email *</label>
+                            <input type="email" 
+                                   class="form-control" 
+                                   id="email" 
+                                   name="email" 
+                                   value="{{ client.email|default:'' }}" 
+                                   required>
+                            <div class="invalid-feedback">
+                                Veuillez entrer une adresse email valide.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="telephone" class="form-label">Téléphone *</label>
+                            <input type="tel" 
+                                   class="form-control" 
+                                   id="telephone" 
+                                   name="telephone" 
+                                   value="{{ client.telephone|default:'' }}" 
+                                   required>
+                            <div class="invalid-feedback">
+                                Le numéro de téléphone est obligatoire.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="adresse" class="form-label">Adresse</label>
+                            <textarea class="form-control" 
+                                      id="adresse" 
+                                      name="adresse" 
+                                      rows="3">{{ client.adresse|default:'' }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" 
+                                      id="notes" 
+                                      name="notes" 
+                                      rows="3">{{ client.notes|default:'' }}</textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'clients:client_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Retour
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> 
+                                {% if client %}Enregistrer{% else %}Créer{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Validation des formulaires Bootstrap
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+{% endblock %} 
